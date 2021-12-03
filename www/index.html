@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="format-detection" content="telephone=no">
+        <meta name="msapplication-tap-highlight" content="no">
+        <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover">
+        <meta name="color-scheme" content="light dark">
+        <!-- <link rel="stylesheet" href="css/index.css"> -->
+        <link rel="stylesheet" type="text/css" href="materialize/css/materialize.min.css">
+        <title>P Camera</title>
+        <style type="text/css">
+            body{
+                background-color: black;
+            }
+            #subTitle{
+                font-weight: bold;
+            }
+            #predictHeader{
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="app">
+            <div class="row">
+                <div class="col s12">
+                    <div class="col s12 input-field center">
+                        <h2 class="center blue-text" style="font-family:verdana;float:bottom;">pCAMERA</h2>
+                        <img src="img/logo.png" class="responsive-img" style="width:50%;">
+                        <p class="flow-text blue-text" id="subTitle">Image Classification - AI Camera</p>
+                    </div>
+
+                   <!--  <div class="col s12 input-field">
+                        <img id = "myImage" style="display:none;" class="responsive-img"></img>
+                    </div> -->
+
+                    <button class="modal-trigger" data-target="prev_image" id="show_image" style="display:none;"></button>
+
+                    <div class="col s12 input-field">
+                        <div class="fixed-action-btn">
+                          <button class="btn-floating btn-large blue z-depth-5" style="font-size: 20px;font-weight: bold;" id="cameraTakePicture">
+                            <!-- &#128247; -->
+                            &plus;
+                          </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col s12">
+                    <p class="flow-text blue-text center" id="notif">CONNECTING TO MOBILENET</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal bottom-sheet" id="prev_image" style="min-height: 100vh;">
+            <div class="modal-footer">
+                <button class="btn-flat modal-close" style="font-size:20px;font-weight:bold;color:red;">&times;</button>
+            </div>
+            <div class="modal-content">
+                <img id = "myImage" style="display:none;" class="responsive-img"></img>
+                <div class="divider"></div>
+                <div class="row">
+                    <p class="flow-text" id="loadPred">Loading predictions...</p>
+                    <div class="col s12 input-field" id="predictHeader">
+                        <p class="center flow-text">Predictions</p>
+                        <div id="result1"></div>
+                        <div id="result2"></div>
+                        <div id="result3"></div>
+                    </div>
+                </div>
+            </div>
+                
+        </div>
+
+
+        <script type="text/javascript" src="js/jquery.min.js"></script>
+        <script type="text/javascript" src="materialize/js/materialize.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+        <script src="cordova.js"></script>
+        <script type="text/javascript">
+            //DISABLE BODY IF MOBILENET AND TENSORFLOW IS NOT YET LOADED
+            document.getElementById('cameraTakePicture').disabled = true;
+            $(document).ready(function(){
+                $('.modal').modal({
+                    inDuration: 500,
+                    outDuration:300
+                });
+                 document.getElementById('cameraTakePicture').disabled = false;
+                 document.getElementById('notif').innerHTML = "&check; CONNECTED TO MOBILENET";
+                // CAPTURE IMAGE
+                document.getElementById("cameraTakePicture").addEventListener("click", cameraTakePicture); 
+                function cameraTakePicture() { 
+                    // EMPTY IMAGE/ CLEAR IMAGE
+                    $('#myImage').attr('src', '');
+                    $('#result1').html('');
+                    $('#result2').html('');
+                    $('#result3').html('');
+                    $('#predictHeader').hide();
+                    navigator.camera.getPicture(onSuccess, onFail, {  
+                        quality: 100,
+                        destinationType: Camera.DestinationType.DATA_URL,
+                        sourceType: Camera.PictureSourceType.CAMERA,
+                        allowEdit: false,
+                        encodingType: Camera.EncodingType.JPEG,
+                        cameraDirection: 0,
+                        correctOrientation:true,
+                        targetWidth:2048,
+                        targetHeight:2048,
+                        // saveToPhotoAlbum: true
+
+                   });  
+                   
+                   function onSuccess(imageData) { 
+                      document.getElementById('myImage').style.display = "block";
+                      $('#loadPred').fadeIn(200);
+                      var image = document.getElementById('myImage'); 
+                      image.src = "data:image/jpeg;base64," + imageData; 
+                      $('#show_image').click();
+                        // getPrediction();
+                        setTimeout(getPrediction,1000);
+                   }  
+                   
+                   function onFail(message) { 
+                      alert('Failed because: ' + message); 
+                   } 
+                }
+                            
+            });
+
+            function getPrediction(){
+                  //RUN TENSORFLOW MACHINE LEARNING LIBRARY
+                      var img = document.getElementById('myImage');
+                        mobilenet.load().then(model => {
+                          // Classify the image.
+                          model.classify(img).then(result => {
+                            var result1 = result[0].className;
+                            var result2 = result[1].className;
+                            var result3 =result[2].className;
+                            document.querySelector('#result1').innerHTML = result1.toString();
+                            document.querySelector('#result2').innerHTML = result2.toString();
+                            document.querySelector('#result3').innerHTML = result3.toString();
+                            $('#loadPred').hide();
+                            $('#predictHeader').fadeIn(200);
+                          });
+                        });
+                    }
+
+        </script>
+    </body>
+</html>
